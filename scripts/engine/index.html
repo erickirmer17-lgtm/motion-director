@@ -1,5 +1,5 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>AI Editing Era — engine</title>
+<html><head><meta charset="utf-8"><title>motion-director engine</title><link rel="icon" href="data:,">
 <style>html,body{margin:0;background:#fff;overflow:hidden}canvas{display:block}</style>
 </head><body>
 <canvas id="out" width="1080" height="1920"></canvas>
@@ -16,7 +16,7 @@
   window.dispatchEvent(new Event('three-ready'));
 </script>
 <script>
-  const out = document.getElementById('out');
+  const out = document.getElementById('out'); out.width = W; out.height = H;
   const octx = out.getContext('2d');
   const work = document.createElement('canvas'); work.width = W; work.height = H;
   const wctx = work.getContext('2d');
@@ -38,17 +38,18 @@
   };
   window.READY = (async () => {
     await new Promise(r => window.THREE ? r() : window.addEventListener('three-ready', r));
-    await loadFonts([
-      ['ISerif', '../assets/fonts/InstrumentSerif-Regular.ttf'],
-      ['ISerifItalic', '../assets/fonts/InstrumentSerif-Italic.ttf'],
-      ['InterD500', '../assets/fonts/InterDisplay-Medium.ttf'],
-      ['InterD600', '../assets/fonts/InterDisplay-SemiBold.ttf'],
-      ['InterD700', '../assets/fonts/InterDisplay-Bold.ttf'],
-      ['InterD800', '../assets/fonts/InterDisplay-ExtraBold.ttf'],
-    ]);
+    // fonts: assets/fonts/fonts.json → [[family, file-or-local(), {weight}], …]; else the bundled defaults
+    let fl = null; try { const r = await fetch('../assets/fonts/fonts.json'); if (r.ok) fl = await r.json(); } catch (e) {}
+    await loadFonts((fl || [
+      ['ISerif', 'InstrumentSerif-Regular.ttf'], ['ISerifItalic', 'InstrumentSerif-Italic.ttf'],
+      ['InterD500', 'InterDisplay-Medium.ttf'], ['InterD600', 'InterDisplay-SemiBold.ttf'],
+      ['InterD700', 'InterDisplay-Bold.ttf'], ['InterD800', 'InterDisplay-ExtraBold.ttf'],
+    ]).map(([f, s, d]) => [f, s.startsWith('local(') || s.includes('/') ? s : '../assets/fonts/' + s, d]));
     const man = await (await fetch('../assets/manifest.json')).json();
     await loadImages(man);
-    try { await initLogo(); initSpark(LOGO.sparkD); } catch (e) { initSpark(); }   // logo.json optional
+    // brand lockup is optional: assets/brand/logo.json = {spark?, word, tx, ty}
+    let hasLogo = false; try { hasLogo = (await fetch('../assets/brand/logo.json', { method: 'HEAD' })).ok; } catch (e) {}
+    if (hasLogo) { await initLogo(); initSpark(LOGO.sparkD); } else initSpark();
     if (window.initScene) await initScene();
     // warm-up draw so fonts/images are uploaded
     renderFrame(0, 1);

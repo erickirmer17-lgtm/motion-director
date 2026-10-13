@@ -1,24 +1,42 @@
 """pop_detect.py — find every frame-to-frame jump in a rendered PNG/JPG sequence.
 
-  python3 pop_detect.py render/v2 [--top 60] [--cuts 64,80,96,...]
+  python3 pop_detect.py <dir> [--top 60] [--cuts 64,80,96] [--crop x0,y0,x1,y1] [--from A --to B]
 
-Lists the largest mean-abs-difference spikes. Every spike must be an intended cut or a fast move;
-anything else is a pop (a morph that doesn't land, a layer that appears a frame early, a hand-off
-mismatch). A perfect morph / hand-off does NOT show up in this list at all.
+Frame numbers come from the file names (works on partial / --list re-renders; gaps are skipped, not
+diffed across). --crop measures one region only (e.g. the logo spark) so a tiny pop isn't drowned by
+the rest of the frame. Every spike must be an intended cut or a fast move; a perfect morph or 3D→2D
+hand-off does not appear in the list at all.
 """
-import sys, glob
+import sys, glob, re, os
 import numpy as np
 from PIL import Image
 
+
+def arg(name, default=None, cast=str):
+    return cast(sys.argv[sys.argv.index(name) + 1]) if name in sys.argv else default
+
+
 d0 = sys.argv[1]
-top = int(sys.argv[sys.argv.index('--top') + 1]) if '--top' in sys.argv else 60
-cuts = set(int(v) for v in sys.argv[sys.argv.index('--cuts') + 1].split(',')) if '--cuts' in sys.argv else set()
-fs = sorted(glob.glob(f'{d0}/*.png') + glob.glob(f'{d0}/*.jpg'))
-prev, d = None, []
-for f in fs:
-    a = np.asarray(Image.open(f).convert('L').resize((270, 480)), np.float32)
-    d.append(0 if prev is None else float(np.mean(np.abs(a - prev)))); prev = a
-d = np.array(d)
-for i in sorted(np.argsort(d)[::-1][:top]):
-    tag = 'cut' if i in cuts else ''
-    print(f'f{i:4d}  {d[i]:6.1f}  {tag}')
+top = arg('--top', 60, int)
+cuts = set(int(v) for v in arg('--cuts', '').split(',') if v)
+crop = tuple(int(v) for v in arg('--crop').split(',')) if arg('--crop') else None
+a, b = arg('--from', 0, int), arg('--to', 10 ** 9, int)
+files = {}
+for f in glob.glob(f'{d0}/*.png') + glob.glob(f'{d0}/*.jpg'):
+    m = re.search(r'(\d+)\.(png|jpg)$', os.path.basename(f))
+    if m and a <= int(m.group(1)) <= b: files[int(m.group(1))] = f
+prev_k, prev, res = None, None, []
+for k in sorted(files):
+    im = Image.open(files[k]).convert('L')
+    if crop: im = im.crop(crop)
+    w = 270 if not crop else min(540, im.width)
+    arr = np.asarray(im.resize((w, max(1, int(im.height * w / im.width)))), np.float32)
+    if prev is not None and k == prev_k + 1:
+        diff = np.abs(arr - prev)
+        res.append((k, float(diff.mean()), float((diff > 40).mean() * 100)))
+    prev_k, prev = k, arr
+if not res: sys.exit('need at least two consecutive frames')
+res.sort(key=lambda r: -r[1])
+print(' frame   meanΔ   %px>40')
+for k, m, p in sorted(res[:top]):
+    print(f'f{k:5d}  {m:6.1f}  {p:6.2f}  {"cut" if k in cuts else ""}')

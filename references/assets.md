@@ -11,7 +11,7 @@
   Marey, phenakistoscope discs (LoC), automata (Jaquet-Droz drawings, the Turk), Méliès, Metropolis (US PD),
   Dürer, Vesalius, Met marble heads (front/side/back = a turntable), patent drawings (NARA).
 
-## Prep (`scripts/tools/prep_assets.py`, edit the SPEC dict)
+## Prep (`assets/prep.py` reads `assets/prep_spec.json`; example in `references/prep_spec_example.py`)
 - `ink`: engraving → RGBA ink with alpha = darkness against the local paper level. Paper becomes transparent, so plates
   layer cleanly on white. Paper texture survives on very grainy scans; drop those or crop tight.
 - `photo`: strict B&W with percentile levels; used rectangular or cover-fit in frames.
@@ -38,8 +38,10 @@
 - Before asking, show: the shots needed and why, the model, seconds, the cost estimate, and a fallback that skips video.
 
 ## Cost sheet to show at Stage 0 (update with live balances)
+Balances: Magnific `account_balance`; ElevenLabs `python3 scripts/tools/elevenlabs.py quota` (scoped keys may 401, so check the dashboard); Topview via its plugin.
 | Item | Typical count | Cost |
 |---|---|---|
+| **Engine-only option** (type, shapes, archival images, library SFX) | — | **0 credits**. Always offer this |
 | GPT-Image-2 hero/fusion stills | 4–8 | 600–700 cr each |
 | Background removal | 5–15 | 3 cr each |
 | ElevenLabs music candidates | 2–4 | small (account quota) |

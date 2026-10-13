@@ -1,7 +1,8 @@
 // core.js — deterministic 2D compositor helpers for "The AI Editing Era".
-// All times are in FRAMES (60 fps, float). Canvas is 1080x1920.
+// All times are in FRAMES (float). Format comes from the page URL (?w=1080&h=1920&fps=60) — capture.js passes it.
 'use strict';
-const W = 1080, H = 1920, FPS = 60;
+const _FMT = new URLSearchParams(location.search);
+const W = +(_FMT.get('w') || window.MD_W || 1080), H = +(_FMT.get('h') || window.MD_H || 1920), FPS = +(_FMT.get('fps') || window.MD_FPS || 60);
 const C = {
   bg: '#FFFFFF', ink: '#0E0E0E', lime: '#C6F432', limeDeep: '#A6DA12', limeInk: '#5E7D00',
   terra: '#D97757', gray: '#EDEDED', mid: '#A2A2A2', soft: '#F4F4F4',
@@ -77,7 +78,11 @@ async function loadImages(manifest) {
   }));
 }
 async function loadFonts(list) {
-  for (const [fam, src, desc] of list) { const ff = new FontFace(fam, `url(${src})`, desc || {}); await ff.load(); document.fonts.add(ff); }
+  // [family, src, descriptors]; src = file URL, or 'local(Futura)' for an installed system font
+  for (const [fam, src, desc] of list) {
+    try { const ff = new FontFace(fam, src.startsWith('local(') ? src : `url(${src})`, desc || {}); await ff.load(); document.fonts.add(ff); }
+    catch (e) { console.warn('[font] could not load', fam, src); }
+  }
 }
 
 // ---------------------------------------------------------------- drawing
@@ -230,10 +235,10 @@ async function initLogo() {
   const j = await (await fetch('../assets/brand/logo.json')).json();
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   const mk = d => { const p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', d); svg.appendChild(p); return p; };
-  const ps = mk(j.spark), pw = mk(j.word); document.body.appendChild(svg);
-  const bs = ps.getBBox(), bw = pw.getBBox();
+  const ps = j.spark ? mk(j.spark) : null, pw = mk(j.word); document.body.appendChild(svg);
+  const bw = pw.getBBox(), bs = ps ? ps.getBBox() : { x: bw.x, y: bw.y, width: 0, height: bw.height };
   document.body.removeChild(svg);
-  Object.assign(LOGO, { sparkD: j.spark, spark: new Path2D(j.spark), word: new Path2D(j.word), bs, bw,
+  Object.assign(LOGO, { sparkD: j.spark || null, spark: j.spark ? new Path2D(j.spark) : null, word: new Path2D(j.word), bs, bw,
     // full lockup bbox in path coords
     x0: Math.min(bs.x, bw.x), x1: Math.max(bs.x + bs.width, bw.x + bw.width),
     y0: Math.min(bs.y, bw.y), y1: Math.max(bs.y + bs.height, bw.y + bw.height) });
@@ -274,6 +279,7 @@ function logoWord(ctx, cx, cy, width, o = {}) {
 }
 function logoSpark(ctx, cx, cy, width, o = {}) {
   const g = logoGeom(cx, cy, width);
+  if (!LOGO.spark) return g;
   ctx.save(); ctx.globalAlpha *= (o.a == null ? 1 : o.a); ctx.fillStyle = C.terra;
   ctx.translate(g.ox, g.oy); ctx.scale(g.k, g.k); ctx.fill(LOGO.spark); ctx.restore();
   return g;

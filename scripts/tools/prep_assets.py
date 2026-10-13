@@ -15,69 +15,10 @@ os.makedirs(OUT, exist_ok=True)
 INK = np.array([16, 16, 16], np.float32)
 MAXD = 2200
 
-SPEC = {
-    # ---- ink (engravings / line drawings)
-    'ecr_canif':    ('raw/ecriture_00.jpg', 'ink', {}),
-    'ecr_alpha':    ('raw/ecriture_02.jpg', 'ink', {}),
-    'turk':         ('raw/turk_08.jpg', 'ink', {}),
-    'turk_col':     ('raw/turk_00.jpg', 'ink', {'gamma': 0.8}),
-    'jd_profile':   ('raw/jaquetdroz_05.jpg', 'ink', {}),
-    'jd_dog':       ('raw/jaquetdroz_07.jpg', 'ink', {}),
-    'durer_hands':  ('raw/durer_hands_07.jpg', 'ink', {}),
-    'durer_book':   ('raw/durer_hands_12.jpg', 'ink', {}),
-    'durer_pray':   ('raw/durer_hands_13.jpg', 'ink', {'gamma': 0.75}),
-    'vaucanson':    ('raw/vaucanson_01.jpg', 'ink', {}),
-    'jacquard':     ('raw/jacquard_01.jpg', 'ink', {}),
-    'jacquard_card':('raw/jacquard_07.jpg', 'ink', {}),
-    'jacquard_m':   ('raw/jacquard_03.png', 'ink', {}),
-    'typecase':     ('raw/imprimerie_00.jpg', 'ink', {}),
-    'imprimerie':   ('raw/imprimerie_01.jpg', 'ink', {}),
-    'composition':  ('raw/imprimerie_02.jpg', 'ink', {}),
-    'cam_obscura':  ('raw/camera_obscura_00.jpg', 'ink', {}),
-    'optics':       ('raw/camera_obscura_01.jpg', 'ink', {}),
-    'typewriter':   ('raw/typewriter_00.jpg', 'ink', {}),
-    'praxi_proj':   ('raw/praxinoscope_07.jpg', 'ink', {}),
-    'praxi':        ('raw/praxinoscope_04.jpg', 'ink', {}),
-    'kin_camera':   ('raw/kinetoscope_01.jpg', 'ink', {}),
-    'kin_tripod':   ('raw/kinetoscope_02.jpg', 'ink', {}),
-    'kin_proj':     ('raw/kinetoscope_04.jpg', 'ink', {}),
-    'marey_hurdle': ('raw/marey_07.png', 'ink', {}),
-    'marey_disc':   ('raw/marey_06.jpg', 'ink', {}),
-    'steamman':     ('raw/steamman_00.jpg', 'ink', {'gamma': 0.8}),
-    'vesalius':     ('raw/vesalius_hand_01.png', 'ink', {}),
-    'robot_engr':   ('gen/engraving_robot_arm.png', 'ink', {}),
-    # ---- photos (rectangular, B&W)
-    'adam':         ('raw/adam_00.jpg', 'photo', {}),
-    'adam_hands':   ('raw/adam_01.jpg', 'photo', {}),
-    'melies':       ('raw/melies_moon_05.jpg', 'photo', {}),
-    'melies_cannon':('raw/melies_moon_10.jpg', 'photo', {}),
-    'melies_draw':  ('raw/melies_moon_02.jpg', 'photo', {}),
-    'metro_scene':  ('raw/metropolis_01.jpg', 'photo', {}),
-    'praxi_photo':  ('raw/praxinoscope_01.jpg', 'photo', {}),
-    'moviola_b':    ('raw/film_editor_05.jpg', 'photo', {}),
-    'jd_writer_b':  ('raw/jaquetdroz_10.jpg', 'photo', {}),
-    'phen_rats':    ('raw/phenakistoscope_00.jpg', 'photo', {}),
-    'phen_cats':    ('raw/phenakistoscope_09.jpg', 'photo', {}),
-    'phen_stampfer':('raw/phenakistoscope_04.gif', 'photo', {}),
-    'phen_couple':  ('raw/phenakistoscope_03.gif', 'photo', {}),
-    'muybridge':    ('raw/muybridge_horse_04.jpg', 'photo', {'max': 3840}),
-    # ---- cut-outs (generated, bg removed)
-    'r_point':      ('gen/robot_point_cut.png', 'cut', {}),
-    'r_film':       ('gen/robot_film_cut.png', 'cut', {}),
-    'r_scissors':   ('gen/robot_scissors_cut.png', 'cut', {}),
-    'r_pinch':      ('gen/robot_pinch_cut.png', 'cut', {}),
-    'android':      ('gen/marble_android_cut.png', 'cut', {}),
-    'head_front':   ('gen/head_front_cut.png', 'cut', {}),
-    'head_r':       ('gen/head_r_cut.png', 'cut', {}),
-    'head_l':       ('gen/head_l_cut.png', 'cut', {}),
-    'head_b':       ('gen/head_b_cut.png', 'cut', {}),
-    'moviola_c':    ('gen/moviola_c_cut.png', 'cut', {}),
-    'moviola':      ('gen/moviola_a_cut.png', 'cut', {}),
-    'metro_robot':  ('gen/metro_robot_cut.png', 'cut', {}),
-    'jd_writer':    ('gen/jd_writer_cut.png', 'cut', {}),
-    'adam_hand':    ('gen/adam_hand_cut.png', 'cut', {}),
-    'god_hand':     ('gen/god_hand_cut.png', 'cut', {}),
-}
+# SPEC lives in the project: assets/prep_spec.json → {"key": ["raw/file.jpg", "ink|photo|cut", {options}], …}
+# (example from ai_editing_era: references/assets.md → "prep_spec example")
+_spec_file = os.path.join(HERE, 'prep_spec.json')
+SPEC = {k: tuple(v) for k, v in json.load(open(_spec_file)).items()} if os.path.exists(_spec_file) else {}
 
 
 def resolve(p):
@@ -140,6 +81,7 @@ def do_cut(im, o):
 
 
 def main(keys=None):
+    if not SPEC: sys.exit('no assets/prep_spec.json yet — list your sources there (see references/assets.md)')
     man = {}
     mf = os.path.join(HERE, 'manifest.json')
     if os.path.exists(mf): man = json.load(open(mf))

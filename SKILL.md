@@ -26,8 +26,10 @@ is in `scripts/engine/examples/ai_editing_era/`. Watch its output once
 
 ## Stage gates — the user chooses, then you build
 
-Use AskUserQuestion (2–4 crisp options, recommended first) or a published Artifact for visual choices.
-Never stall: while waiting you can prep free work (sourcing, engine scaffold, SFX scan).
+Use AskUserQuestion (2–4 crisp options, recommended first) or a published Artifact for visual choices; if
+neither tool exists, ask in plain text with lettered options. Deliver files with SendUserFile, or give
+absolute paths. Never stall: while waiting, prep free work (sourcing, engine scaffold, SFX scan).
+**Merge stages** when the piece is ≤10 s, has ≤3 beats, or the user says "just make it": merge 2+3 and 5+6, but keep the budget question and the video-gen ask.
 
 | # | Stage | You deliver | User chooses |
 |---|---|---|---|
@@ -75,7 +77,8 @@ Detailed per-stage instructions are in `references/pipeline.md`. Read it at the 
 ## Workspace layout (per project)
 
 `<MM_Month>/<project>/` (e.g. `10_October/ai_editing_era/`). Scaffold it with
-`bash scripts/tools/new_project.sh <dir>`. That gives engine/ (core.js, capture.js, index.html,
+`bash scripts/tools/new_project.sh <dir> [--brand claude] [--w 1080 --h 1920 --fps 60 --seconds 15]`
+(any format: pass the same `--w --h --fps` to `capture.js`; `engine/FORMAT` records them). That gives engine/ (core.js, capture.js, index.html,
 scene.js starter, deps installed), assets/ (raw, gen, img, fonts, brand, prep.py, manifest.json),
 audio/ (mix.py on mixer.py), research/, render/ and out/. Keep a `DIRECTION.md` (idea, palette, type, beat table,
 sound plan) and update it when decisions change.

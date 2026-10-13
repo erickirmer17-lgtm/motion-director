@@ -12,7 +12,7 @@
    lockup, with a tiny sparkle on the spark.
 Avoid harsh glitch packs, comedic pops and loud risers unless the brief wants energy over elegance.
 
-## Curated library (`/Users/user/Documents/Claude Opp./System/Audio/SFX/Ieditvrs SFX/`)
+## Curated library (`System/Audio/SFX/Ieditvrs SFX/`; `System/sfx` is a symlink to the same folder)
 Profiled with `scripts/tools/sfx_scan.py` (duration · peak time · brightness):
 
 | Role | File (Pro Sfx unless noted) | Notes |

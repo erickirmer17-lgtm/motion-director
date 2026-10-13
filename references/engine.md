@@ -1,7 +1,8 @@
 # Engine — browser canvas + Three.js, deterministic, 60 fps
 
 ## Files (`scripts/engine/`, copied into `<project>/engine/` by new_project.sh)
-- `index.html`: loads fonts (FontFace), images from `../assets/manifest.json`, the logo from
+- `index.html`: sizes the canvas from `?w=&h=&fps=` (capture.js passes them). It loads fonts from `assets/fonts/fonts.json`
+  (`[[family, file | 'local(Futura)', {weight}], …]`, falling back to the bundled Instrument Serif + Inter Display) and images from `../assets/manifest.json`, the logo from
   `../assets/brand/logo.json` (optional) and Three.js via an import map. It exposes `renderFrame(f, sub)`,
   which renders `sub` sub-frames over a 180° shutter and running-averages them (motion blur). Edit the font list here.
 - `core.js`: helpers.
@@ -41,9 +42,9 @@ clip(startFrame, endFrame, (ctx, t, f) => { … }, z)   // z-sorted layers; t = 
 - `motion_clone_engine.py`: sprite affine/blur/DOF compositor used for the 1:1 AE clone.
 
 ## QA tools (`scripts/tools/`)
-- `sheet.py dir a b step out.jpg [cols]`: labelled contact sheets. Read them after every change.
+- `sheet.py dir out.jpg [--from --to --step --cols --crop x0,y0,x1,y1]`: labelled contact sheets. Read them after every change.
 - Zoomed crops around a morph: render the 6–10 frames around it at full res, crop and upscale (NEAREST) side by side.
-- `pop_detect.py frames/`: largest frame-to-frame differences; anything that isn't a planned cut or fast move is a bug.
+- `pop_detect.py frames/ [--crop …] [--cuts …]`: largest frame-to-frame differences; anything that isn't a planned cut or fast move is a bug.
 - Hand-off verification: render the last 3D frame (overlay alpha 0) and the next beat's first frame, then
   `cv2.estimateAffine2D` on ORB matches should be ≈ identity.
 - `encode.sh frames mix.wav out.mp4` gives the master + share copy.

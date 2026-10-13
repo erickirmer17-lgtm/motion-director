@@ -12,6 +12,8 @@
 - Lime (#C6F432) thin lines disappear on white. Use ≥6 px strokes, lime fills (highlight blocks behind
   black text read beautifully), or put the lime over imagery. Handles: lime fill + 2.5 px ink outline.
 - Spring overshoot can push objects through the floor and they vanish: clamp the offset (`max(0, 1-s)`).
+- A letter built from several separately filled shapes shows faint anti-aliased seams that pop when you swap to the
+  real glyph (EMBER dry run: 228 px changed). Fill the parts as ONE path (single beginPath, many subpaths) so the edges match.
 - Typing/flip morphs: flipping letters (scaleY through 0) looks like a glitch. A masked vertical roll looks designed.
 - Converging many same-size copies into one = mush. Absorb copies (shrink to the centre) and grow the hero.
 - Zooming an archival scan past ~3× pixelates; hand over to vector type at the scan's size, then grow.
@@ -29,6 +31,10 @@
 - File names in the editor pack contain double/triple spaces (`Splash  (38)`, `Deep Whoosh   (1)`). Copy the names exactly.
 - Align long whooshes by their peak; align chords/booms by their start.
 - A music bed with a natural fade-out at ~9 s is common. Re-cut bars instead of regenerating.
+
+**Tooling**
+- `sheet.py` and `pop_detect.py` read frame numbers from file names; use `--crop` to measure a single morph region.
+- `capture.js` hides 404s (favicon, optional logo/fonts json); add `--verbose` when debugging asset loading.
 
 **Process**
 - Show the user the first real render early (style frames from the engine, not mock-ups).

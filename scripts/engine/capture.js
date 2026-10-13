@@ -1,5 +1,6 @@
 // capture.js — render frames of engine/index.html with headless Chrome.
-// usage: node capture.js --from 0 --to 899 --out ../render/frames [--step 1] [--scale 0.5] [--sub N] [--workers 4] [--jpg]
+// usage: node capture.js --from 0 --to 899 --out ../render/frames [--step 1 | --list 10,20] [--scale 0.5] [--sub N] [--workers 4] [--jpg]
+//        [--w 1080 --h 1920 --fps 60]  (format; default 9:16 1080x1920@60)  [--verbose] (show 404s)
 const http = require('http'), fs = require('fs'), path = require('path');
 const puppeteer = require('puppeteer-core');
 const ROOT = path.resolve(__dirname, '..');
@@ -10,6 +11,7 @@ const from = +(args.from || 0), to = +(args.to || 899), step = +(args.step || 1)
 const scale = +(args.scale || 1), sub = args.sub ? +args.sub : 0, workers = +(args.workers || 4);
 const outDir = path.resolve(args.out || path.join(ROOT, 'render/frames'));
 const list = args.list ? String(args.list).split(',').map(Number) : null;
+const FW = +(args.w || 1080), FH = +(args.h || 1920), FPSA = +(args.fps || 60);
 fs.mkdirSync(outDir, { recursive: true });
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.ttf': 'font/ttf', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
@@ -36,17 +38,21 @@ const server = http.createServer((req, res) => {
   await Promise.all(chunks.map(async (chunk) => {
     if (!chunk.length) return;
     const page = await browser.newPage();
-    page.on('console', m => { if (m.type() === 'error' || m.type() === 'warn' || m.text().startsWith('[log]')) console.log('[page]', m.text()); });
+    page.on('console', m => {
+      const t = m.text();
+      if (!args.verbose && /Failed to load resource.*404/.test(t)) return;      // favicon / optional logo.json / fonts.json
+      if (m.type() === 'error' || m.type() === 'warn' || t.startsWith('[log]')) console.log('[page]', t);
+    });
     page.on('pageerror', e => console.log('[pageerror]', e.message));
-    await page.setViewport({ width: 1080, height: 1920, deviceScaleFactor: 1 });
-    await page.goto(`http://localhost:${port}/engine/index.html`, { waitUntil: 'load' });
+    await page.setViewport({ width: FW, height: FH, deviceScaleFactor: 1 });
+    await page.goto(`http://localhost:${port}/engine/index.html?w=${FW}&h=${FH}&fps=${FPSA}`, { waitUntil: 'load' });
     await page.evaluate(() => window.READY);
     for (const f of chunk) {
       const dataUrl = await page.evaluate(({ f, sub, scale, jpg }) => {
         renderFrame(f, sub || undefined);
         const c = document.getElementById('out');
         if (scale !== 1) {
-          const s = document.createElement('canvas'); s.width = Math.round(1080 * scale); s.height = Math.round(1920 * scale);
+          const s = document.createElement('canvas'); s.width = Math.round(c.width * scale); s.height = Math.round(c.height * scale);
           const x = s.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(c, 0, 0, s.width, s.height);
           return s.toDataURL(jpg ? 'image/jpeg' : 'image/png', 0.9);
         }

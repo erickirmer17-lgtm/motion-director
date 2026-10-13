@@ -3,6 +3,7 @@
   python3 elevenlabs.py music out.mp3 --prompt "..." --ms 15000
   python3 elevenlabs.py music out.mp3 --plan plan.json           # composition_plan (sections with durations)
   python3 elevenlabs.py sfx jobs.json outdir/                     # [["name","prompt",seconds,prompt_influence], ...]
+  python3 elevenlabs.py quota                                     # plan + characters used / limit (credits)
 
 Notes (validated 2026-10):
 - music/compose honours tempo words ("112 BPM") well; free prompts tend to fade early.
@@ -49,8 +50,17 @@ def sfx(jobs, outdir):
         for r in ex.map(one, jobs): print(r)
 
 
+def quota():
+    req = urllib.request.Request('https://api.elevenlabs.io/v1/user/subscription', headers={'xi-api-key': key()})
+    try: d = json.load(urllib.request.urlopen(req, timeout=60))
+    except urllib.error.HTTPError as e:
+        print(f'quota unavailable ({e.code}): this key probably lacks the user_read scope; check elevenlabs.io → Subscription'); return
+    print(f"tier {d.get('tier')}  used {d.get('character_count')} / {d.get('character_limit')}  resets {d.get('next_character_count_reset_unix')}")
+
+
 if __name__ == '__main__':
     mode = sys.argv[1]
+    if mode == 'quota': quota()
     if mode == 'music':
         args = sys.argv[2:]; out = args[0]
         p = args[args.index('--prompt') + 1] if '--prompt' in args else None

@@ -18,7 +18,7 @@ function drawScene(ctx, t, f) {
 }
 
 // ------------------------------------------------------------ BEAT 1 — word lands, razor cuts it, halves part (0–44)
-const CUT = { cy: 930, ang: -0.5, t0: 4, t1: 14, split0: 22, split1: 44 };
+const CUT = { cy: Math.round(H * 0.484), ang: -0.5, t0: 4, t1: 14, split0: 22, split1: 44 };
 function titleWord(ctx, t) {
   const u = E.outE(prog(t, -6, 12));
   ctx.save(); ctx.translate(CX, CUT.cy); ctx.scale(lerp(1.08, 1, u), lerp(1.08, 1, u)); ctx.translate(-CX, -CUT.cy);
@@ -47,19 +47,23 @@ clip(0, 46, (ctx, t) => {
 
 // ------------------------------------------------------------ BEAT 2 — an image framed by a lime crop box (22–120)
 function beat2(ctx, t) {
-  const [cx, cy, w, h] = kf(t, [[22, [CX, 900, 860, 600]], [70, [CX, 900, 860, 600]], [78, [CX, 900, 640, 640], E.snap]]);
+  const [cx, cy, w, h] = kf(t, [[22, [CX, H * 0.47, 860, 600]], [70, [CX, H * 0.47, 860, 600]], [78, [CX, H * 0.47, 640, 640], E.snap]]);
   const name = Object.keys(IMG)[0];                    // replace with a manifest key
   if (!name) return;
-  img(ctx, name, { x: CX, y: 900, w: 1300, a: 0.13 }); // ghost outside the crop
+  img(ctx, name, { x: CX, y: H * 0.47, w: 1300, a: 0.13 }); // ghost outside the crop
   ctx.save(); ctx.beginPath(); ctx.rect(cx - w / 2, cy - h / 2, w, h); ctx.clip();
-  ctx.fillStyle = C.bg; ctx.fillRect(cx - w / 2, cy - h / 2, w, h); img(ctx, name, { x: CX, y: 900, w: 1300 }); ctx.restore();
+  ctx.fillStyle = C.bg; ctx.fillRect(cx - w / 2, cy - h / 2, w, h); img(ctx, name, { x: CX, y: H * 0.47, w: 1300 }); ctx.restore();
   ctx.save(); ctx.strokeStyle = C.lime; ctx.lineWidth = 6; ctx.strokeRect(cx - w / 2, cy - h / 2, w, h); ctx.restore();
 }
 clip(46, 120, (ctx, t) => beat2(ctx, t));
 
 // ------------------------------------------------------------ BEAT 3 — dot → spark → logo lockup (120–240)
 clip(120, 240, (ctx, t) => {
-  if (!LOGO.bs) { spark(ctx, CX, CY, lerp(46, 360, E.outC(prog(t, 122, 140))), { grow: E.outC(prog(t, 122, 140)) }); return; }
+  if (!LOGO.bs) {                                      // no assets/brand/logo.json → typeset wordmark end card
+    const u = (i) => E.outQuint(prog(t, 124 + i * 2, 140 + i * 2));
+    word(ctx, 'BRAND', FONTS.sansX, 220, CX, CY + 80, { track: 6, glyph: (i) => ({ dy: (1 - u(i)) * 60, a: u(i) }) });
+    return;
+  }
   const LW = 760, g = logoGeom(CX, CY, LW);
   const fx = g.ox + SPARK.cx * g.k, fy = g.oy + SPARK.cy * g.k, fsize = 2 * SPARK.rmax * g.k;
   const grow = prog(t, 122, 140), move = E.ioQuint(prog(t, 140, 160));

@@ -1,0 +1,58 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>AI Editing Era — engine</title>
+<style>html,body{margin:0;background:#fff;overflow:hidden}canvas{display:block}</style>
+</head><body>
+<canvas id="out" width="1080" height="1920"></canvas>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+<script src="node_modules/flubber/build/flubber.min.js"></script>
+<script src="core.js"></script>
+<script src="scene.js"></script>
+<script src="three_scene.js"></script>
+<script type="module">
+  import * as THREE from 'three';
+  import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+  import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+  window.THREE = THREE; window.RoomEnvironment = RoomEnvironment; window.RoundedBoxGeometry = RoundedBoxGeometry;
+  window.dispatchEvent(new Event('three-ready'));
+</script>
+<script>
+  const out = document.getElementById('out');
+  const octx = out.getContext('2d');
+  const work = document.createElement('canvas'); work.width = W; work.height = H;
+  const wctx = work.getContext('2d');
+  // render frame f with n sub-samples over a 180° shutter (centred), running-average accumulate
+  window.renderFrame = function (f, n) {
+    n = n || subsamples(f);
+    octx.save(); octx.globalAlpha = 1; octx.globalCompositeOperation = 'source-over';
+    for (let k = 0; k < n; k++) {
+      const t = n === 1 ? f : f + ((k + 0.5) / n - 0.5) * SHUTTER;
+      wctx.setTransform(1, 0, 0, 1, 0, 0); wctx.globalAlpha = 1; wctx.filter = 'none';
+      wctx.globalCompositeOperation = 'source-over';
+      wctx.fillStyle = C.bg; wctx.fillRect(0, 0, W, H);
+      drawScene(wctx, t, f);
+      octx.globalAlpha = 1 / (k + 1);
+      octx.drawImage(work, 0, 0);
+    }
+    octx.restore();
+    return true;
+  };
+  window.READY = (async () => {
+    await new Promise(r => window.THREE ? r() : window.addEventListener('three-ready', r));
+    await loadFonts([
+      ['ISerif', '../assets/fonts/InstrumentSerif-Regular.ttf'],
+      ['ISerifItalic', '../assets/fonts/InstrumentSerif-Italic.ttf'],
+      ['InterD500', '../assets/fonts/InterDisplay-Medium.ttf'],
+      ['InterD600', '../assets/fonts/InterDisplay-SemiBold.ttf'],
+      ['InterD700', '../assets/fonts/InterDisplay-Bold.ttf'],
+      ['InterD800', '../assets/fonts/InterDisplay-ExtraBold.ttf'],
+    ]);
+    const man = await (await fetch('../assets/manifest.json')).json();
+    await loadImages(man);
+    try { await initLogo(); initSpark(LOGO.sparkD); } catch (e) { initSpark(); }   // logo.json optional
+    if (window.initScene) await initScene();
+    // warm-up draw so fonts/images are uploaded
+    renderFrame(0, 1);
+    return true;
+  })();
+</script>
+</body></html>

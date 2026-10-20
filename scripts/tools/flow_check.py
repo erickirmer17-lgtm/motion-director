@@ -9,7 +9,8 @@ Flags:
            a stop or surge in what should be one steady glide
   REVERSE  inside a --glide window, zoom flips sign against the window's majority (a pull-back that turns into a push-in)
   STALL    ≥ --stall seconds (1.2) with nothing moving (speed < 0.15 px/f and no frame change), outside holds you planned
-  POP      frame difference > 3× both neighbours: a pop, or a cut (every one must be planned)
+  POP      frame difference > 3× the local median: a pop, a flash or a cut (every one must be planned). Mean
+           difference can't see a cut between two near-identical textures; read the sheets as well
 Writes flow.csv (frame, speed, dx, dy, zoom, diff) and flow.png (speed and zoom curves, flags marked).
 Glide windows: frames at the render's fps, e.g. a fly-over cruise 1.6–7.3 s at 30 fps → --glide 48:219.
 """

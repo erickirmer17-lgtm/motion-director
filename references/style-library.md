@@ -34,3 +34,29 @@ WebFetch a page to read its brief when a concept needs a reference. Some useful 
 - A fused hero image: archival medium, futuristic subject (marble android, Encyclopédie robot arm).
 - Old-tech sounds (typewriter, shutter, projector) handing over to soft modern UI sounds at the turn.
 - The turn is a type event: a serif word rolls into a sans word; an archival title becomes your headline.
+
+## Pro reference library (`10_October/motion_refs/`, analysed 2026-10-20; read the folder's ANALYSIS.md)
+| Folder | What it is | Steal |
+|---|---|---|
+| `aditya_after_a_long_time…` | 53 s SKOOP AI-search spec ad (no VO), lime #CAFF73 on #F3F3F3/#1A1A1A | caret continuity, lime silhouette → real, cooling letters, images as glyphs, processing wash, triptych push |
+| `aditya_checkout_the_full_video…` | 46 s VO trailer, kinetic captions over footage | three-tier lockup with hero behind the subject, blue→white word karaoke, invert-strobe whip in breath gaps, anchor-shot returns |
+| `aditya_best_clips…` | 2×2 grid of the trailer's four quarters | free N-up teaser deliverable |
+| `aditya_tried_base_44…`, `aditya_another_recreation…`, `aditya_highlights…` | short UI/brand recreations | pixel-mosaic wave from a prompt card into an image (Base44), see each ANALYSIS.md |
+| `jaxx_after_way_too_long…` | 33 s BLACKSIGNAL AI spec ad, B&W stock → ASCII mosaic, one orange accent | glyph mosaic (`asciify`), stepped builds, typed claims persisting across cuts, window match-cut, white-outs on onsets |
+| `ankush_podcast_intro` | 2×2 showcase of three podcast caption treatments + brand card | grey→white karaoke, serif-italic emphasis tier, linear counters from 0 on the cut, accents sampled from the set |
+Measured-recreation specs (product film in a laptop terminal; WebGL landing-page fly-over) are in `_research/specs/`.
+
+## Motion tool landscape (what each does well; borrow vocabulary, build in our engine)
+- **arqe.ai**: 189 showcase templates in ~25 families (Carousel, Orbit, Globe, Field, Proximity, Flicker, Marquee,
+  Magazine page curl, Gravity…) + 3D device mockups with camera presets. → `motion-vocabulary.md` template table.
+- **animos.app**: 69 loop templates (stack, cover flow, ticker tilt, spiral, wipes, wheel); every template is
+  `render(ctx, t∈[0,1))`, i.e. a seek(t). Segment rule: motion in the first 45–55 % of each card's segment, then hold.
+- **swishy.ai**: AI → Remotion code; strong kinetic-type set (spill word, scramble, word wheel, extend, goo, terminal
+  typing); house entrance = spring 90/20, 22–25 px rise, 8–10 f stagger.
+- **raylight.app**: browser 3D motion editor with an MCP server; In/Out/During animation blocks, camera between two
+  framings (dolly / zoom / dolly-zoom, log zoom), scene effects stack, shake presets.
+- **prompt-motion.com / promptsmotion.com**: Claude-made pieces with their prompts; the @twoclipping six-tag specs are the model for `measured-recreation.md`.
+- **animista.net** (names + keyframes), **gsap.com/showcase** (serious web motion), **lottiefiles.com** (free
+  animation materials), **aicameramovements.com** (46 camera moves), **whatships.com** (launch videos to reference).
+- Suggested order when hunting: whatships (pick a reference) → prompt-motion (examples with prompts) → animista
+  (learn the move's name) → gsap showcase (serious motion) → lottiefiles (materials) → aicameramovements (camera).

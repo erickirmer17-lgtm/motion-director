@@ -18,11 +18,19 @@ is in `scripts/engine/examples/ai_editing_era/`. Watch its output once
 
 1. **Budget first.** Before any paid step, ask how much the user is willing to spend. Check balances first:
    Magnific `account_balance` (credits; the MCP session bills credits even on unlimited plans), and
-   ElevenLabs/Topview where relevant. Then show a line-item estimate (see `references/assets.md` → costs).
+   ElevenLabs/Topview/Scenario CU where relevant. Then show a line-item estimate (see `references/assets.md` → costs).
 2. **Ask before generating any video.** Video generation (Seedance/Kling/Wan/H3/Veo via Topview,
    Magnific, fal…) is always confirmed per batch with the exact prompts, model, duration and cost.
    Image generation, background removal, music and SFX may run inside the approved budget without asking each time.
    Report spend as you go.
+
+## The facts rule
+
+Facts about the product are not creative choices. The logo is the supplied file, product screens are real
+captures, names, numbers and claims come from a source. You may invent camera, motion, transitions and copy
+rhythm; you may not redraw the logo, mock a dashboard or invent a metric. A missing real asset is a blocker:
+ask for it or capture it from the real product. An unclear reference gets a question or one test frame,
+never 900 polished wrong frames.
 
 ## Stage gates — the user chooses, then you build
 
@@ -38,8 +46,8 @@ absolute paths. Never stall: while waiting, prep free work (sourcing, engine sca
 | 2 | Concept | 2–3 concepts: logline, the key line/copy, edit grammar, palette/type, 5-beat outline | one concept |
 | 3 | Storyboard | beat sheet with frames, 4–6 style frames rendered in the real engine, sound plan | go / changes |
 | 4 | Assets | sourced + generated images (contact sheet), music candidates, video gens (ask first) | picks |
-| 5 | Rough cut | full-length low-res render (no blur) + temp mix | go / notes |
-| 6 | Final | full-res motion-blurred render, final mix, QA report, MP4 + share copy | approve |
+| 5 | Rough cut | full-length low-res render (no blur) + temp mix, after your own critic pass + scorecard | go / notes |
+| 6 | Final | full-res motion-blurred render per format, final mix, QA report, MP4 + share copy + poster, human-review note | approve |
 
 Small projects can merge 2+3 and 5+6. Big ones can split stage 4. After delivery, write a short retrospective
 (what worked, what to change) and save project memory.
@@ -52,13 +60,16 @@ Detailed per-stage instructions are in `references/pipeline.md`. Read it at the 
   "every transition is an edit (cut, crop, paste, scrub, ripple-delete)". Ideas over effects.
 - **Copywriter.** Few words that carry the meaning. Prefer letter-level morphs that are themselves the
   message: past→paste, the engraving's title "Camera"→camera→era. End on the brand.
-- **Art director.** A strict palette: one ground, one ink, one or two accents, B&W imagery. Two type voices
+- **Art director.** Decide where the eye goes first in every beat; one focal point, the rest quieter.
+  A strict palette: one ground, one ink, one or two accents, B&W imagery. Two type voices
   at most (e.g. a historic serif against a modern grotesk). No eyebrow labels, no fake UI chrome, no beige
   "artsy" grain unless the brief asks for it. Bold scale contrast: tiny images beside huge type.
 - **Editor.** Shots of 4–8 frames at 60 fps in montages, holds only where reading is needed (~1.2 s for the
   final line, ~1.2 s for the logo). Keep one **continuity element** (dot, ring, crop box, spark, cursor)
   alive across hard cuts; that is what makes fast cutting feel smooth. Every morph has to land
-  pixel-exactly (see `references/morph-cookbook.md`).
+  pixel-exactly (see `references/morph-cookbook.md`). Motion has weight by class: micro UI snaps, panels
+  settle, the camera glides almost invisibly, headlines arrive fast then hold. If everything overshoots,
+  nothing feels precise. After each move the viewer must know where to look.
 - **Sound designer.** A sound for every visible event, placed on its exact frame and peak-aligned. Mostly
   soft, glossy textures: a music spine on the edit's tempo, a breath of near-silence before the logo,
   then a warm resolve. See `references/sound-design.md`.
@@ -68,11 +79,11 @@ Detailed per-stage instructions are in `references/pipeline.md`. Read it at the 
 | Need | Default | When to switch |
 |---|---|---|
 | Edit / compositing / type / UI layer | **browser canvas engine** (`scripts/engine`, deterministic, 60 fps, sub-frame motion blur) | numpy engine (`scripts/engine_py`) for pixel-art/thermal/film-grade pieces; HyperFrames when the user wants an editable composition |
-| Clean 3D in the edit | **Three.js inside the engine** (same camera maths → exact 2D↔3D hand-offs) | Blender (MCP / CLI) for physics, Cycles-quality materials, long camera moves |
+| Clean 3D in the edit | **Three.js inside the engine** (same camera maths → exact 2D↔3D hand-offs); lighting/materials/props from **Poly Haven** first (`freeassets ph search|get`, CC0, free: `.hdr` → RGBELoader, glTF models, `arm`-packed PBR maps) | Blender (MCP / CLI) for physics, Cycles-quality materials, long camera moves (Poly Haven loads via `freeassets/ph_blender.py`); with the **Scenario extension** for greybox Blockout previs, PBR materials, HDRI worlds, `camera_path` cameras and `capture_views` sheets (`references/scenario-blender.md`) |
 | Photographic assets | public domain archives (Wikimedia, LoC, Met, AIC) | GPT-Image-2 (`gpt-2`, Magnific) for futuristic/fictional counterparts; Nano Banana for edits/text-preserving work |
 | Moving footage | (avoid unless the idea needs it) | Topview / Magnific video models; ask first, always |
 | Music | ElevenLabs music (tempo in the prompt), re-cut on its bar grid | Suno for songs/vocals |
-| SFX | `System/Audio/SFX` (esp. `Ieditvrs SFX/Pro Sfx`, UI Sfx, whooshes) | ElevenLabs sound-generation for gaps (shutter, projector, blade, chord…) |
+| SFX | `System/Audio/SFX` (esp. `Ieditvrs SFX/Pro Sfx`, UI Sfx, whooshes); search it by sound with `earshot rank` | real-world gaps: Openverse/Freesound via `freeassets sfx "<query>" --rank "<description>"` (free, CC0/BY only, credits tracked); then `earshot sfx render` (code-made, `--dur`/`--apex` aimed, free) or ElevenLabs sound-generation (shutter, projector, blade, chord…) |
 
 ## Workspace layout (per project)
 
@@ -80,28 +91,47 @@ Detailed per-stage instructions are in `references/pipeline.md`. Read it at the 
 `bash scripts/tools/new_project.sh <dir> [--brand claude] [--w 1080 --h 1920 --fps 60 --seconds 15]`
 (any format: pass the same `--w --h --fps` to `capture.js`; `engine/FORMAT` records them). That gives engine/ (core.js, capture.js, index.html,
 scene.js starter, deps installed), assets/ (raw, gen, img, fonts, brand, prep.py, manifest.json),
-audio/ (mix.py on mixer.py), research/, render/ and out/. Keep a `DIRECTION.md` (idea, palette, type, beat table,
-sound plan) and update it when decisions change.
+audio/ (mix.py on mixer.py), research/, render/, reviews/ and out/. `DIRECTION.md` is the film's record: brief
+(the one sentence to remember, facts vs choices, what's unacceptable), style guide (palette, type, pacing,
+motion by class, banned defaults), beat table (what the viewer knows, entry → exit state), formats, sound, and a
+`Gate:` line. Update it when decisions change; a later session resumes from it, not from the chat.
 
 ## Build loop (the part that makes it good)
 
 1. Write beats as clips in `scene.js` (times in frames; the cut logic uses the integer frame `FR`, animation uses `t`).
+   Every frame must be a pure function of its number: `hash(n)` not `Math.random`, no clocks, no state carried
+   between frames. `scripts/tools/seek_check.py engine/` proves it; run it once the first beats render.
 2. Preview: `node capture.js --from 0 --to N --scale 0.4 --jpg --workers 6` takes about 10 s for 900 frames.
-   Then build contact sheets with `scripts/tools/sheet.py` and read them. Check every morph frame by frame
-   (render the 6–10 frames around it).
+   Then build contact sheets with `scripts/tools/sheet.py` and read them (`--safe` for safe areas, `--width 390`
+   for phone-size reading). Check every morph frame by frame (render the 6–10 frames around it).
 3. Fix, then re-render only the affected range. Repeat until nothing jumps unintentionally.
 4. Final: `--sub 4` (180° shutter motion blur), full res PNG, then `scripts/tools/pop_detect.py`: every spike must be a planned cut.
-5. Mix (`audio/mix.py`), then encode (`scripts/tools/encode.sh`), then send the MP4 with SendUserFile.
+   Long camera glides: `scripts/tools/flow_check.py --glide a:b` on a 30 fps preview first (no dips, no zoom reversals).
+5. Mix (`audio/mix.py`), then encode (`scripts/tools/encode.sh`).
+6. Listen before you ship (earshot, if installed; see `references/sound-design.md` → Listening QA): `timeline` with
+   the mixer's cue frames, `sheet` (open the PNG), `critique`. Fix late, missing or masked hits.
+7. Critic pass (`references/review.md`): judge only the rendered frames and mix, score them, fix the three largest
+   defects with frame ranges and evidence, re-render only those ranges. Done means the evidence says it works, not
+   that the last command exited. Then send the MP4 + poster with SendUserFile and the human-review note.
 
 `references/engine.md` documents the engine API, 3D and the QA tools. `references/lessons.md` lists the
 traps that already cost hours, so read it before building.
 
 ## References (read when relevant)
 
-- `references/pipeline.md`: stage-by-stage instructions, deliverables, gate questions
+- `references/pipeline.md`: stage-by-stage instructions, deliverables, gate questions, resuming
+- `references/review.md`: the critic loop (evidence pack, checklist, scorecard, three-defect repair, delivery note)
 - `references/morph-cookbook.md`: proven transitions and morphs with code pointers
 - `references/sound-design.md`: SFX library map, music strategy, mixer usage, loudness
 - `references/assets.md`: sourcing, prep, generation, video routing, costs
 - `references/engine.md`: canvas engine API, 3D, Python engines, render and QA
-- `references/style-library.md`: visual languages from past projects and promptsmotion.com
+- `references/style-library.md`: visual languages from past projects, the analysed pro reference library
+  (`10_October/motion_refs/`, one ANALYSIS.md per film) and the motion-tool landscape
+- `references/motion-math.md`: springs (presets, stacked `track`), decaying settles, speed-curve glides, log zoom,
+  ease catalogues (GSAP, Penner, template tools), motion-law numbers, sound placement computed from motion
+- `references/motion-vocabulary.md`: named moves (Animista, GSAP, Swishy, Raylight), showcase template families,
+  camera moves → code, effects stack, Lottie/GSAP inside seek(t)
+- `references/measured-recreation.md`: rebuilding a reference by numbers, writing six-tag specs, the WebGL
+  page fly-over and laptop-terminal product-film recipes; read it when the user pastes a "replicate prompt"
+- `references/scenario-blender.md`: Scenario's Blender extension + local MCP (free camera paths and view sheets, paid Blockout/PBR/HDRI), routing and money rules
 - `references/lessons.md`: gotchas and fixes, read before building

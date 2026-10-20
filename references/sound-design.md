@@ -54,8 +54,15 @@ Batch with `scripts/tools/elevenlabs.py sfx jobs.json audio/gen/` (4 in parallel
 - **Best method**: take the rich free-prompt track and **re-cut it on its own bar grid** so the groove ends
   exactly where the picture needs it. `Mixer.music(path, first_kick_src, first_kick_frame, bpm, bars=[(0,3),(1,3),(3,None)], fade=(a,b))`
   plays bars 0–3, repeats bars 1–3, then the original ending, with 6 ms crossfades on the kicks.
-- Analyse candidates first: low-band onset detection gives the kick times and BPM; RMS per 0.5 s and a
-  spectrogram (`showspectrumpic`) show where the energy drops.
+- Analyse candidates first: `scripts/tools/beats.py track.mp3 --fps 60` (run with the earshot venv python, which has
+  librosa) writes `beats.json`: BPM, a beat grid phase-refined on kick transients (librosa's raw grid was 46–64 ms early),
+  downbeats from kick strength per bar phase, the strongest hits snapped to their attack, kick/snare/hat onsets,
+  dropouts, and all of it as frame numbers. Read `grid_fit` for half/double-time mistakes. RMS per 0.5 s and a
+  spectrogram (`showspectrumpic`) still show where the energy drops.
+- Place sounds from the motion curves, not by hand (`references/motion-math.md` → Sound placement): whoosh apex on peak
+  velocity, impact on contact, pop-in at 50 % travel, lock at 97 %. Hand-typed sync points land 8–11 f off.
+- Pro references dip the bed before every turn (−20…−28 dB for 0.3–1.5 s) and save exact hits for interactions
+  (clicks, pops, the logo forming) rather than every cut (`10_October/motion_refs/*/ANALYSIS.md`).
 
 ## Mixer (`scripts/tools/mixer.py`)
 `Mixer(fps, frames)` → `.music(...)`, `.cue(path, frame, db, pan, rate, align, verb)` → `.render('mix.wav')`.
@@ -63,3 +70,25 @@ It peak-normalises sources, uses a synthetic plate reverb send (~0.15), a gentle
 -15.5 dB and a look-ahead limiter at -1 dBFS. Derive cue frames from the same maths as the picture (e.g. 3D clip settle
 times from the spring function, scrub steps from `floor(scrub(f))`) so sound and picture can't drift.
 Check the result with a 0.2 s RMS ladder plus a spectrogram: the breath before the logo must be visibly quiet.
+
+## Listening QA (earshot)
+You cannot hear the mix; earshot can (local CPU, `earshot` skill; install at `System/tools/earshot`, MCP `earshot`).
+Run it on the encoded MP4 before delivery; the whole pass takes ~35 s for a 15 s film.
+1. `mixer.render('mix.wav')` also writes `mix.cues.json` (every cue frame, layered cues merged).
+2. `earshot timeline out/film.mp4 --cues audio/mix.cues.json --detail high`: loudness, beat grid, events, and sync
+   per cut and per cue (offset = sound minus picture). Read the 'chance' figures: only above-chance sync means anything.
+3. `earshot sheet out/film.mp4 -o render/sheet.png --cues audio/mix.cues.json`: OPEN the PNG. Red marker = a cue
+   with no sound under it (masked or missing): fix it. Violet = only a level peak (fine for whooshes/swells).
+   Amber (within 100 ms) is expected for `align='peak'` cues: the mixer lands the *peak* on the frame, earshot
+   marks the *onset*, which comes a few ms earlier for soft-attack sounds. A hit that is amber and *late* is wrong.
+4. `earshot critique out/film.mp4`: scorecard vs 7 launch films; fix any critical/major row, consider the tips.
+5. Choosing sounds: `earshot rank "<source + material + action>" "<…>/System/sfx/<folder>" --top 8` searches
+   the library by sound (embeddings are cached), then `find` the clean trim. For a real-world gap,
+   `python3 System/tools/freeassets/freeassets.py sfx "<keywords>" --max-dur 6 --rank "<source + material + action>"`
+   pulls up to 10 Openverse/Freesound candidates (CC0/BY only, ~128 kbps MP3 previews, 200 searches/day) into
+   `System/Audio/_OPENVERSE_INBOX/` and ranks them; `freeassets keep <file> <folder>` files a winner into the library;
+   `freeassets credits <files>` prints the attribution lines CC BY needs. For a synthetic gap, `earshot sfx render <id>
+   --dur <s> --apex <s>` makes a code-synthesized whoosh/hit/click aimed at the move, free and instant
+   (`earshot sfx list --kind whoosh`); ElevenLabs when neither has it.
+Baseline: AI EDITING ERA v2 scored launch-grade (23/23 in range), -15.2 LUFS, 97% of cuts with an onset within 100 ms,
+0 red cues; only tip was a stop-down (0.2-1 s drop-out) before the biggest visual change.

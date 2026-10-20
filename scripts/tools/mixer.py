@@ -7,7 +7,7 @@ Import it from a project's audio/mix.py:
     m.music('gen/music.mp3', first_kick_src=0.58, first_kick_frame=22, bpm=112.35,
             bars=[(0, 3), (1, 3), (3, None)], db=-7, fade=(766, 782))   # optional bar re-cut
     m.cue(PATH, frame, db=-12, pan=0, rate=1.0, align='peak'|'start', verb=0.15)
-    m.render('mix.wav', lufs_proxy=-15.5, ceiling=-1.0)
+    m.render('mix.wav', lufs_proxy=-15.5, ceiling=-1.0)          # also writes mix.cues.json for earshot
 
 Why it works:
 - every source is peak-normalised, then placed so its *transient peak* lands on the event frame
@@ -16,7 +16,7 @@ Why it works:
 - one synthetic plate reverb send glues library sounds from different origins;
 - gentle bus compression + look-ahead limiter → consistent, social-ready loudness.
 """
-import os, math, subprocess, wave
+import os, math, json, subprocess, wave
 import numpy as np
 from scipy.signal import fftconvolve, butter, sosfilt
 
@@ -117,7 +117,18 @@ class Mixer:
             w.setnchannels(2); w.setsampwidth(2); w.setframerate(sr)
             w.writeframes((np.clip(mix, -1, 1) * 32767).astype(np.int16).tobytes())
         print(f'{len(self.cues)} cues  peak {20 * np.log10(np.abs(mix).max()):.2f} dB  rms {20 * np.log10(np.sqrt(np.mean(mix ** 2))):.2f} dB -> {out}')
+        self.write_cues(os.path.splitext(out)[0] + '.cues.json')
         return out
+
+    def write_cues(self, path, merge=1.5):
+        """earshot cue sheet ({fps, events:[{f, kind, id}]}) for `earshot timeline/sheet --cues`; layered cues
+        within `merge` frames count as one event (the earliest, then loudest, names it)"""
+        ev, seen = [], []
+        for f, name, db in sorted(self.cues, key=lambda c: (c[0], -c[2])):
+            if any(abs(f - s) < merge for s in seen): continue
+            seen.append(f); ev.append({'f': round(float(f), 2), 'kind': 'cue', 'id': f'{name}@{f:g}'})
+        with open(path, 'w') as fh: json.dump({'fps': self.fps, 'events': ev}, fh, indent=1)
+        return path
 
     def _compress(self, x, thr_db=-18, ratio=2.2, att=0.004, rel=0.12):
         lvl = np.abs(x).max(1); env = np.zeros_like(lvl)

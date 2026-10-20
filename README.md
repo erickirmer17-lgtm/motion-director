@@ -17,21 +17,27 @@ and ends on the logo. The full source is in `scripts/engine/examples/ai_editing_
 | 2 Concept | 2–3 concepts (logline, copy, look, beats, sound) | one |
 | 3 Storyboard | beat table + style frames rendered in the real engine | go / changes |
 | 4 Assets | sourced + generated images, music candidates; **asks before any video generation** | picks |
-| 5 Rough cut | full-length preview + temp mix | notes |
-| 6 Final | motion-blurred master + share copy, QA report | approve |
+| 5 Rough cut | full-length preview + temp mix, after its own critic pass (scorecard, three worst defects fixed) | notes |
+| 6 Final | motion-blurred master per format + share copy + poster, QA report, what still needs a human eye | approve |
 
 Money rules: it asks your budget first and asks before every paid video generation. Everything else
-runs on its own, and you pick at each stage gate.
+runs on its own, and you pick at each stage gate. Facts rule: your logo, product screens and numbers stay
+real; a missing one is a question, never a convincing fake.
+
+Every frame is a pure function of its frame number (seekable, deterministic, checked by `seek_check.py`),
+so one section can be re-rendered on its own and 9:16 / 16:9 / 1:1 are separate compositions from one timeline.
 
 ## What's inside
 ```
 SKILL.md                     workflow, roles, tool choice
-references/                  pipeline · morph-cookbook · sound-design · assets · engine · style-library · lessons
+references/                  pipeline · review · morph-cookbook · sound-design · assets · engine · style-library ·
+                             scenario-blender · lessons
 scripts/engine/              deterministic browser-canvas + Three.js engine (60 fps, sub-frame motion blur)
   core.js index.html capture.js scene_template.js  examples/ai_editing_era/
 scripts/engine_py/           numpy/cv2 compositors (film-grade, voxel sprites, thermal plates)
 scripts/tools/               new_project.sh · analyze_reference.py · prep_assets.py · commons_search.py
-                             sfx_scan.py · mixer.py · elevenlabs.py · pop_detect.py · sheet.py · encode.sh
+                             sfx_scan.py · mixer.py · elevenlabs.py · pop_detect.py · sheet.py (--safe)
+                             seek_check.py · encode.sh (+ poster)
 assets/brand_claude/         official Claude lockup paths (spark + wordmark)
 ```
 
@@ -41,7 +47,8 @@ assets/brand_claude/         official Claude lockup paths (spark + wordmark)
 
 Requirements: Node 18+, Python 3.9+ (numpy, scipy, opencv-python, Pillow), Google Chrome, and an ffmpeg
 binary. Optional: Magnific MCP (GPT-Image-2 / Nano Banana / bg removal), ElevenLabs API key,
-Topview / fal for video, Blender.
+Topview / fal for video, Blender (optionally with the [Scenario extension](https://github.com/scenario-labs/blender-plugin)
+for Blockout previs, PBR materials, HDRI worlds and agent camera paths).
 
 Environment overrides (defaults point at the author's workspace):
 `FFMPEG`, `CHROME_PATH`, `ELEVENLABS_API_KEY` (or `MD_API_KEYS_FILE`). The SFX paths in

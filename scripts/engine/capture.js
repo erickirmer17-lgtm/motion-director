@@ -29,7 +29,9 @@ const server = http.createServer((req, res) => {
   const browser = await puppeteer.launch({
     executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     headless: 'new',
-    args: ['--hide-scrollbars', '--force-device-scale-factor=1', '--use-angle=metal', '--enable-gpu-rasterization', '--ignore-gpu-blocklist', '--disable-background-timer-throttling', '--disable-renderer-backgrounding'],
+    // software 2D canvas: the GPU canvas caches downscaled textures by draw history, so the same frame
+    // rendered after different frames differed (thin-line thumbnails, up to 100/255). WebGL stays on the GPU.
+    args: ['--disable-accelerated-2d-canvas', '--hide-scrollbars', '--force-device-scale-factor=1', '--use-angle=metal', '--enable-gpu-rasterization', '--ignore-gpu-blocklist', '--disable-background-timer-throttling', '--disable-renderer-backgrounding'],
   });
   const frames = list || [];
   if (!list) for (let f = from; f <= to; f += step) frames.push(f);

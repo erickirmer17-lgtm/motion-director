@@ -18,6 +18,25 @@
 - Converging many same-size copies into one = mush. Absorb copies (shrink to the centre) and grow the hero.
 - Zooming an archival scan past ~3× pixelates; hand over to vector type at the scan's size, then grow.
 - The animated logo spark must be the logo's own path, ending on its exact centroid/scale, or the switch to the vector lockup pops.
+- The GPU 2D canvas made renders depend on draw history: the same frame came out differently (thin-line
+  thumbnails and discs, up to 123/255) depending on which frames the worker had drawn before, and the 3D init
+  changed it too. A normal ascending render hid it; an out-of-order `--list` re-render would have shimmered.
+  Fixed by a software 2D canvas in capture.js plus a warm-up of every clip's first frame in index.html.
+  `seek_check.py` found it in the finished AI EDITING ERA film, so run it on every project.
+- Motion blur by 8-bit running average (globalAlpha 1/(k+1)) is ≤1 level off at 4 samples but posterises at more;
+  index.html now sums in float when `--sub` > 4. Sub-frames must stay inside the act (choose content with `FR`), or a
+  hard cut double-exposes.
+- Bounce everywhere reads as generated. `spring(f, 3.2, .55)` overshoots 13 %: use the `SP` presets (critical by
+  default), overshoot only on ≤ 2 real landings, never on type.
+- Chromium: `will-change` with an animated blur gives ghost frames; blur radii below ~0.75 px render fully sharp
+  (a fade-from-blur pops at the end); `preserve-3d` with opacity or filter flattens the element (fade a wrapper);
+  `backdrop-filter: url()` misreads displacement maps; `will-change` on anything the camera scales blurs its text.
+- Footage in the browser: Python's `http.server` can't range-seek video. Load it as a blob URL and wait for `seeked`,
+  re-encode all-intra (`-g 1`), or use JPEG sequences.
+- Lottie: `goToAndStop(v, true)` = frames (relative to `ip`), `goToAndStop(v, false)` = **milliseconds**. The canvas
+  renderer rewrites its canvas size on load: give each animation its own offscreen canvas and `drawImage` it.
+- Hard flashes (white-outs, negatives) land on the music onset or 1–2 f before it; *pulses* (scale/brightness) peak
+  ~2 f after their sound. Two conventions; pick per event.
 - Puppeteer: use system Chrome (`/Applications/Google Chrome.app/...`), headless 'new'. Screenshots aren't needed;
   `canvas.toDataURL` per frame is fast enough (≈30 ms/frame full res with 6 workers).
 
@@ -35,8 +54,15 @@
 **Tooling**
 - `sheet.py` and `pop_detect.py` read frame numbers from file names; use `--crop` to measure a single morph region.
 - `capture.js` hides 404s (favicon, optional logo/fonts json); add `--verbose` when debugging asset loading.
+- Disk: `analyze_reference.py` writes every frame as PNG (≈ 30–90 MB per minute of reference) and full-res grabs are
+  3–6 MB each. Check `df -h` before analysing many references; delete `analysis/frames/` once the sheets exist and take
+  hi-res grabs as JPG (`-q:v 3`). The machine ran out of space mid-session on 2026-10-20.
+- Subagents can't write report files (the harness refuses). Ask them to return the document as a fenced markdown
+  block, then save it yourself.
 
 **Process**
+- Facts are not choices: never redraw a logo, mock a product screen or invent a number to fill a gap. A missing real
+  asset is a question for the user. Redrawn logos and mocked UI read as fake on screen and break brand trust.
 - Show the user the first real render early (style frames from the engine, not mock-ups).
 - Your own frame-by-frame QA of every transition comes before the user sees a cut.
 - Don't clone someone's piece 1:1 when it isn't the user's. Analyse it, then make an original in a related language.

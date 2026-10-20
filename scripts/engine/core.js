@@ -47,13 +47,41 @@ E.bez = (x1, y1, x2, y2) => t => {
 E.snap = E.bez(0.2, 0.0, 0.0, 1.0);      // UI snap — fast attack, long settle
 E.swift = E.bez(0.7, 0.0, 0.15, 1.0);    // slow-in, very fast out (whip)
 E.glide = E.bez(0.45, 0.0, 0.1, 1.0);
-// damped spring 0→1 over frames (freq Hz, damping ratio)
+E.cam = E.bez(0.48, 0.1, 0.0, 0.9);      // camera glide (cinetic), 0.9–3 s
+// damped spring 0→1 over frames (freq Hz, damping ratio; <1 overshoots, 1 critical, >1 overdamped)
 function spring(f, freq = 3.2, damp = 0.55) {
   if (f <= 0) return 0;
   const t = f / FPS, w = TAU * freq, z = damp;
   if (z < 1) { const wd = w * Math.sqrt(1 - z * z); return 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + z * w / wd * Math.sin(wd * t)); }
+  if (z > 1.001) { const q = w * Math.sqrt(z * z - 1), r1 = -z * w + q, r2 = -z * w - q; return 1 - (r2 * Math.exp(r1 * t) - r1 * Math.exp(r2 * t)) / (r2 - r1); }
   return 1 - Math.exp(-w * t) * (1 + w * t);
 }
+// spring presets [freq, damp] for spring()/track(). No overshoot by default: bounce everywhere is the
+// top tell of generated motion. `land`/`pop` only for ≤2 real landings per film, never on type.
+// (within 3 % for good, at 60 fps: micro/detent 9 f, snap 18 f, land 24 f, firm 27 f, soft 39 f, calm 41 f, heavy 62 f)
+const SP = {
+  micro: [4.6, 0.87], detent: [4.0, 0.79], snap: [3.1, 0.67],   // UI chips, pickers, lock-ins (0.4–6 % overshoot)
+  firm: [1.9, 1], soft: [1.75, 1.19], heavy: [1.3, 1.34],       // UI arrival, panels/cards, full-frame surfaces
+  calm: [1.27, 1],                                              // headlines: the only spring type gets
+  land: [2.25, 0.51], pop: [2.76, 0.53],                        // mascot/hero landings (15 % overshoot)
+};
+// stacked springs: a value retargeted at frames f_i, steps [[f, v], …] from v0. Exact for a linear spring
+// (velocity carries through each retarget), and still a pure function of t: frame 812 needs no frames 0–811.
+function track(t, v0, steps, sp = SP.firm) {
+  let v = v0, prev = v0;
+  for (const [f, tv] of steps) { v += (tv - prev) * spring(t - f, sp[0], sp[1]); prev = tv; }
+  return v;
+}
+// decaying approach: share of the gap closed after n frames when each frame closes (1 − r) of what's left.
+// r 0.78–0.89 = fast start, soft landing (the settle measured in UI recreations: bars, panels, dollies)
+const approach = (n, r = 0.84) => n <= 0 ? 0 : 1 - Math.pow(r, n);
+// log-space mix for zoom/scale/distance: equal ratios per unit time (a linear scale lerp reads as braking)
+const lmix = (a, b, u) => a * Math.pow(b / a, u);
+// punch on a hit: linear attack over `att` frames, exponential decay τ frames. A pulse peaks ~2 f after its sound
+// (f0 = sound frame); a hard flash/white-out instead lands on the onset or 1–2 f before it: att = 0, f0 = onset − 1.
+const hitPulse = (t, f0, att = 2, tau = 5) => t < f0 ? 0 : t < f0 + att ? (t - f0) / att : Math.exp(-(t - f0 - att) / tau);
+// hand-drawn boil: a new drawing every `hold` frames. Use it as a hash seed, never as time.
+const boil = (t, hold = 2) => Math.floor(t / hold);
 // keyframes: [[f, value, ease?], ...] — ease applies to the segment ARRIVING at that key
 function kf(t, keys) {
   if (t <= keys[0][0]) return keys[0][1];
@@ -65,6 +93,28 @@ function kf(t, keys) {
     }
   }
   return keys[keys.length - 1][1];
+}
+// measured table: [[f, v], …] linearly interpolated, held at the ends. For values read off a reference
+// frame by frame: never ease or smooth them, patch one-frame outliers instead.
+function tbl(t, rows) {
+  if (t <= rows[0][0]) return rows[0][1];
+  for (let i = 1; i < rows.length; i++) {
+    if (t <= rows[i][0]) { const [f0, v0] = rows[i - 1], [f1, v1] = rows[i]; return mix(v0, v1, (t - f0) / (f1 - f0)); }
+  }
+  return rows[rows.length - 1][1];
+}
+// distance travelled by frame t under a speed curve [[f, speed], …] (piecewise linear, integrated exactly).
+// Drive glides from one speed curve, never from position keys: position keys every few frames surge and stall.
+function travel(t, keys) {
+  let d = 0;
+  if (t <= keys[0][0]) return (t - keys[0][0]) * keys[0][1];
+  for (let i = 1; i < keys.length; i++) {
+    const [f0, s0] = keys[i - 1], [f1, s1] = keys[i];
+    if (t <= f1) { const u = t - f0; return d + (s0 + (s0 + (s1 - s0) * u / (f1 - f0))) / 2 * u; }
+    d += (s0 + s1) / 2 * (f1 - f0);
+  }
+  const [fl, sl] = keys[keys.length - 1];
+  return d + sl * (t - fl);
 }
 
 // ---------------------------------------------------------------- assets
@@ -227,6 +277,31 @@ function dot(ctx, x, y, r, color, a = 1) {
 function line(ctx, x0, y0, x1, y1, w, color, a = 1, cap = 'round') {
   ctx.save(); ctx.globalAlpha *= a; ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = cap;
   ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.restore();
+}
+// glyph mosaic (ASCII render) of an image/canvas into the rect {x,y,w,h}: one character per cell, picked by luma
+// from `ramp` (dark → bright, ' ' = skip), coloured by the source or `tint`. aspect > 1 = tall letter columns.
+// Step `cell` down on beats (40 → 20 → 10) to "boot up" an image coarse → fine (Jaxx reference).
+// o: {x, y, w, h, tint, bg, blend (alpha over what's there), font, aspect}
+const _asc = {};
+function asciify(ctx, src, cell, ramp = ' .+|TXHERAQ$B', o = {}) {
+  const x = o.x || 0, y = o.y || 0, w = o.w || W, h = o.h || H, ch = cell * (o.aspect || 1);
+  const cols = Math.max(1, Math.round(w / cell)), rows = Math.max(1, Math.round(h / ch)), key = cols + 'x' + rows;
+  const s = _asc[key] || (_asc[key] = Object.assign(document.createElement('canvas'), { width: cols, height: rows }));
+  const sx = s.getContext('2d', { willReadFrequently: true });
+  sx.clearRect(0, 0, cols, rows); sx.drawImage(src, 0, 0, cols, rows);
+  const px = sx.getImageData(0, 0, cols, rows).data;
+  ctx.save();
+  if (o.bg) { ctx.fillStyle = o.bg; ctx.fillRect(x, y, w, h); }
+  ctx.globalAlpha *= o.blend ?? 1;
+  ctx.font = `${Math.round(ch * 0.92)}px ${o.font || 'monospace'}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const i = (r * cols + c) * 4, L = (0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]) / 255 * px[i + 3] / 255;
+    const g = ramp[Math.min(ramp.length - 1, Math.floor(L * ramp.length))];
+    if (g === ' ') continue;
+    ctx.fillStyle = o.tint || `rgb(${px[i]},${px[i + 1]},${px[i + 2]})`;
+    ctx.fillText(g, x + (c + 0.5) * w / cols, y + (r + 0.5) * h / rows);
+  }
+  ctx.restore();
 }
 
 // ---------------------------------------------------------------- Claude logo (official lockup)

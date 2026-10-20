@@ -19,21 +19,32 @@
   const out = document.getElementById('out'); out.width = W; out.height = H;
   const octx = out.getContext('2d');
   const work = document.createElement('canvas'); work.width = W; work.height = H;
-  const wctx = work.getContext('2d');
-  // render frame f with n sub-samples over a 180° shutter (centred), running-average accumulate
+  const wctx = work.getContext('2d', { willReadFrequently: true });
+  let acc = null, accImg = null;
+  // render frame f with n sub-samples over a 180° shutter (centred). Up to 4 samples: 8-bit running average
+  // (measured ≤1 level off). More samples: summed in float and quantised once, because the 8-bit error grows
+  // with n and posterises gradients (the float path costs ~60 ms per sample per 0.5 MP).
   window.renderFrame = function (f, n) {
     n = n || subsamples(f);
-    octx.save(); octx.globalAlpha = 1; octx.globalCompositeOperation = 'source-over';
+    const float = n > 4;
+    octx.setTransform(1, 0, 0, 1, 0, 0); octx.globalCompositeOperation = 'source-over';
     for (let k = 0; k < n; k++) {
       const t = n === 1 ? f : f + ((k + 0.5) / n - 0.5) * SHUTTER;
       wctx.setTransform(1, 0, 0, 1, 0, 0); wctx.globalAlpha = 1; wctx.filter = 'none';
       wctx.globalCompositeOperation = 'source-over';
       wctx.fillStyle = C.bg; wctx.fillRect(0, 0, W, H);
       drawScene(wctx, t, f);
-      octx.globalAlpha = 1 / (k + 1);
-      octx.drawImage(work, 0, 0);
+      if (!float) { octx.globalAlpha = 1 / (k + 1); octx.drawImage(work, 0, 0); continue; }
+      const px = wctx.getImageData(0, 0, W, H).data;
+      if (!acc) { acc = new Float32Array(W * H * 4); accImg = octx.createImageData(W, H); }
+      if (k === 0) acc.set(px); else for (let i = 0; i < px.length; i++) acc[i] += px[i];
     }
-    octx.restore();
+    octx.globalAlpha = 1;
+    if (float) {
+      const d = accImg.data, inv = 1 / n;
+      for (let i = 0; i < d.length; i++) d[i] = acc[i] * inv;   // Uint8ClampedArray rounds to nearest
+      octx.putImageData(accImg, 0, 0);
+    }
     return true;
   };
   window.READY = (async () => {
@@ -51,7 +62,9 @@
     let hasLogo = false; try { hasLogo = (await fetch('../assets/brand/logo.json', { method: 'HEAD' })).ok; } catch (e) {}
     if (hasLogo) { await initLogo(); initSpark(LOGO.sparkD); } else initSpark();
     if (window.initScene) await initScene();
-    // warm-up draw so fonts/images are uploaded
+    // warm-up: draw the first frame of every clip once, so lazy inits (3D, layout caches) and image uploads
+    // happen before any captured frame — every frame then renders the same in any order (tools/seek_check.py)
+    if (typeof CLIPS !== 'undefined') for (const c of CLIPS) renderFrame(c.a, 1);
     renderFrame(0, 1);
     return true;
   })();

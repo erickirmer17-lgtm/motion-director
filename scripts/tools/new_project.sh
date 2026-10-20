@@ -4,7 +4,7 @@
 #   engine/   core.js index.html capture.js package.json scene.js (starter) three_scene.js (stub) — npm deps installed
 #   assets/   raw/ gen/ img/ fonts/ (bundled OFL fonts) brand/ (only with --brand claude) prep.py prep_spec.json manifest.json
 #   audio/    gen/ + mix.py (Mixer, frames from --seconds × --fps)
-#   research/ render/ out/  DIRECTION.md (template)
+#   research/ render/ reviews/ out/  DIRECTION.md (template: brief, style guide, beats, formats, sound, gate)
 set -e
 SK="$(cd "$(dirname "$0")/.." && pwd)"
 P="$1"; shift || true
@@ -14,7 +14,7 @@ while [ $# -gt 0 ]; do case "$1" in
   --brand) BRAND="$2"; shift 2;; --w) W="$2"; shift 2;; --h) H="$2"; shift 2;;
   --fps) FPS="$2"; shift 2;; --seconds) SEC="$2"; shift 2;; *) echo "unknown arg $1"; exit 1;; esac; done
 FRAMES=$(python3 -c "print(int(round($SEC*$FPS)))")
-mkdir -p "$P"/{engine,assets/{raw,gen,img,fonts,brand},audio/gen,research,render,out}
+mkdir -p "$P"/{engine,assets/{raw,gen,img,fonts,brand},audio/gen,research,render,reviews,out}
 cp "$SK/engine/core.js" "$SK/engine/capture.js" "$SK/engine/index.html" "$SK/engine/package.json" "$P/engine/"
 [ -f "$P/engine/scene.js" ] || cp "$SK/engine/scene_template.js" "$P/engine/scene.js"
 [ -f "$P/engine/three_scene.js" ] || echo "// optional 3D beat — see examples/ai_editing_era/three_scene.js" > "$P/engine/three_scene.js"
@@ -40,17 +40,33 @@ m.render('mix.wav')
 EOF
 [ -f "$P/DIRECTION.md" ] || cat > "$P/DIRECTION.md" <<EOF
 # <TITLE> — direction v1
+**Gate:** 0 intake   <!-- update as each gate passes: 2 concept ✓ · 3 storyboard ✓ · 5 rough r01 … -->
 **Format:** ${W}×${H} · ${FPS} fps · ${SEC} s (${FRAMES} f) · ends on <brand>
+**Remember:** <the one sentence the viewer should leave with>
 **Line:** <the copy>
 **Idea:** <the organising idea — what every transition means>
 
-## Palette / type
-- ground ·  ink ·  accent(s) (hex) · image treatment
-- typefaces (2 max)
+## Brief
+- audience · where it plays (feed / site / pitch) · variants (9:16 / 16:9 / 1:1)
+- **Facts (locked, real only):** logo <path> · product screens <paths> · names, numbers, claims <source>
+- **Choices (ours):** camera, motion, transitions, copy rhythm, sound
+- **Unacceptable:** <e.g. invented UI or metrics, redrawn logo, centred-text-on-gradient look, unreadable copy>
+
+## Style guide
+- ground · ink · accent(s) (hex) · image treatment · texture (grain / paper / none)
+- typefaces (2 max), sizes at 1080 w
+- composition: where the eye goes first in each beat
+- pacing: mean frames between meaningful changes (measured from the reference if one exists)
+- motion by class: micro UI <snap, ≤3 f settle> · panels <settle> · camera <slow, near-invisible> · headlines <fast in, long hold> · hero/brand <…>
+- banned defaults: <list>
+- from the reference: keep <traits> · don't copy <subjects, logos, copy>
 
 ## Beats (frames @${FPS})
-| f | beat | technique / morph |
-|---|---|---|
+| f | beat | viewer now knows | entry → exit state | technique / morph | sound |
+|---|---|---|---|---|---|
+
+## Formats
+<per variant: what changes (type scale, element count, camera path, holds); same story and states>
 
 ## Sound
 tempo · music approach · signature sounds · where the breath goes · the ending
